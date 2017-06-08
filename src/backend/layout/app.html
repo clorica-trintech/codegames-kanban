@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <title>Trintech Kanban</title>
+    <!-- Library Styles -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/public/app.css">
+  </head>
+  <body>
+    <div class="kanban-anchor"></div>
+    <footer>Trintech</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/superagent@3.5.2/superagent.js"></script>
+    <script src="/public/app.js"></script>
+    <!-- Your Code Here -->
+    <script>
+      const kanbanRoot = document.querySelectorAll('.kanban-anchor')[0];
+      const httpClient = window.superagent;
+
+      httpClient
+        // Your API call here
+        .get('/public/data.json')
+        .set('Accept', 'application/json')
+        .end((error, response) => {
+          if (error) {
+            throw error;
+          }
+          const issues = response.body;
+          window.kanban(kanbanRoot, issues, window.searcher);
+        });
+    </script>
+  </body>
+</html>

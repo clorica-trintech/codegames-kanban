@@ -1,0 +1,110 @@
+
+
+ SELECT
+  Case When log.REFERENCE Is Null Then Concat(CT.CT_ID, CT.TD_ID, CT.CP_ID) Else log.reference END  As id,
+  CT.NAME_ As 'name',
+  ls2.NAME_ As actionPlan,
+  ct.is_critical As 'priority',
+  ls.NAME_ As 'status',    
+  CT.ENTITY_NAME As entity,
+  Concat(FYP.NAME_, ' ', FY.NAME_) As closePeriod,
+  CP.START_DATE As startDate,
+  CT.DUE_DATE As dueDate,
+  Concat (ap.first, ' ', AP.LAST) As asignee,
+  'CODE GAMES' as owner,
+  CASE WHEN CT.COMPLETED IS NULL THEN 'false' ELSE 'true' End As completed
+  
+  
+  
+http request: 
+  http://localhost:8080/api/tasks/?owner=Cheryl Lorica
+
+
+
+
+workFlowTag: "To Do", "In Progress", "Completed"
+priority: "High", "Medium", "Low", null
+toDoRole: "Reviewer", "Approver", "Preparer", "Proxy"
+inProgressStatus: "In Review", "In Approval", "In Preparation", "Proxy"
+doneStatus: "completed", "cancelled"
+canReopen: "true", "false"
+ 
+
+[
+  {
+    "id": 'HQCORPRECO07252014185812618482',
+    "owner": "Cheryl Lorica",
+    "assignee": "Brian",
+    "workFlowTag": "To Do",
+    "name": "HQ-CORP-Recon_Deferred Income Taxes Payable_600",
+    "actionPlan": "Close Task",
+    "action": "Save",
+    "startDate": "6/13/2017 5:00PM",
+    "dueDate": "6/25/2017 5:00PM",
+    "status": "Active",
+    "entity": "Corporate HQ",
+    "closePeriod": "Jun 2017",
+    "priority": "High",
+    "toDoRole": "Review",
+    "inProgressStatus": "In Review",
+    "doneStatus": "completed",
+    "canReopen": "true"
+  },
+  {
+    "id": 'HQCORPRECO07252014185812618482',
+    "owner": "Cheryl Lorica",
+    "assignee": "Sujeewa",
+    "workFlowTag": "In Progress",
+    "name": "HQ-CORP-Recon_Deferred Income Taxes Payable_600",
+    "actionPlan": "Close Task",
+    "action": "Save",
+    "startDate": "6/13/2017 5:00PM",
+    "dueDate": "6/25/2017 5:00PM",
+    "status": "Active",
+    "entity": "Corporate HQ",
+    "closePeriod": "Jun 2017",
+    "priority": "Low",
+    "toDoRole": "Review",
+    "inProgressStatus": "In Review",
+    "doneStatus": "completed",
+    "canReopen": "true"
+  },
+  {
+    "id": 'HQCORPRECO07252014185812618482',
+    "owner": "Cheryl Lorica",
+    "assignee": "Armin",
+    "workFlowTag": "To Do",
+    "name": "HQ-CORP-Recon_Deferred Income Taxes Payable_600",
+    "actionPlan": "Close Task",
+    "action": "Save",
+    "startDate": "6/13/2017 5:00PM",
+    "dueDate": "6/25/2017 5:00PM",
+    "status": "Active",
+    "entity": "Corporate HQ",
+    "closePeriod": "Jun 2017",
+    "priority": "High",
+    "toDoRole": "Review",
+    "inProgressStatus": "In Review",
+    "doneStatus": "completed",
+    "canReopen": "true"
+  },
+  {
+    "id": 'HQCORPRECO07252014185812618482',
+    "owner": "Cheryl Lorica",
+    "assignee": "Sujeewa",
+    "workFlowTag": "To Do",
+    "name": "HQ-CORP-Recon_Deferred Income Taxes Payable_600",
+    "actionPlan": "Close Task",
+    "action": "Save",
+    "startDate": "6/13/2017 5:00PM",
+    "dueDate": "6/25/2017 5:00PM",
+    "status": "Active",
+    "entity": "Corporate HQ",
+    "closePeriod": "Jun 2017",
+    "priority": "High",
+    "toDoRole": "Review",
+    "inProgressStatus": "In Review",
+    "doneStatus": "completed",
+    "canReopen": "true"
+  }
+]
