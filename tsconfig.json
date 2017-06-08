@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "outDir": "./.build",
+    "target": "es2015",
+    // "sourceMap": true,
+    "lib": ["es6", "dom"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitOnError": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "jsx": "react"
+  },
+  "include": [
+    "./src/**/*"
+  ],
+  "types": [
+    "node"
+  ],
+  "exclude": [
+    "./node_modules/**"
+  ]
+}
