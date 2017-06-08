@@ -298,8 +298,15 @@
             idContainer.appendChild(id);
             header.appendChild(idContainer);
             // card rows
-            const summaryFields = pick(issue, 'actionPlan', 'priority', 'startDate', 'dueDate');
-            const detailsFields = pick(issue, 'status', 'action', 'entity', 'closePeriod', 'toDoRole', 'inProgressStatus', 'doneStatus', 'canReopen');
+            const summaryFields = pick(issue, 'actionPlan', 
+            //'priority', This needs to be a color
+            'startDate', 'dueDate');
+            const detailsFields = pick(issue, 'status', //we dont need this value
+            //'action', we dont have this value
+            'entity', 'closePeriod', 'toDoRole', //need this in the filter
+            'inProgressStatus', //need this in the filter
+            'doneStatus', //need this in the filter
+            'canReopen'); //need this in the filter
             const rows = make('div');
             rows.classList.add('rows');
             const summaryRows = makeCardRows(summaryFields, true);
