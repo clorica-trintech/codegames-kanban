@@ -73,7 +73,7 @@ interface IssueSummary {
     ['To Do', 
       ['Preparer', 'Reviewer', 'Approver', 'Proxy']],
     ['In Progress', 
-      ['In Review', 'In Approval', 'Proxy']],
+      ['In Review', 'In Approval', 'In Proxy']],
     ['Done', 
       ['Completed', 'Cancelled']]
   ]);
@@ -83,9 +83,9 @@ interface IssueSummary {
     'assignee', 
     'name',
     'actionPlan',
-    'action',
     'status',
     'entity',
+    'closePeriod',
     'priority',
     'toDoRole',
     'inProgressStatus',
@@ -149,8 +149,8 @@ interface IssueSummary {
       case "inProgressStatus": return "In Progress Status";
       case "doneStatus": return "Done Status";
       case "canReopen": return "Can Re-open";
+      default: return key;
     }
-    return "";
   }
 
   const searchableText = new Map<keyof IssueSummary, [string, any][]>();
@@ -182,7 +182,7 @@ interface IssueSummary {
     for (const searchableField of searchableFields) {
       const option = make('option');
       option.value = searchableField;
-      option.textContent = searchableField;
+      option.textContent = getFieldDisplayName(searchableField);
       select.appendChild(option);
     }
 
@@ -206,7 +206,7 @@ interface IssueSummary {
     typeAhead.classList.add('type-ahead', 'hidden');
     search.appendChild(typeAhead);
 
-    function onInput(isOpenTypeAhead = true) {
+    function onInput() {
       const selectedOption = select.selectedOptions[0];
       const issueField = selectedOption.value;
       const searchTerm = input.value;
@@ -228,7 +228,7 @@ interface IssueSummary {
             };
           });
 
-        if (suggestions.length && isOpenTypeAhead) {
+        if (suggestions.length) {
           openTypeAhead(suggestions);
         }
         return;
@@ -261,7 +261,7 @@ interface IssueSummary {
       }
       const items = Array.from(typeAheadItemMap.values());
 
-      if (items.length && isOpenTypeAhead) {
+      if (items.length) {
         openTypeAhead(items);
       }
     }
@@ -276,7 +276,7 @@ interface IssueSummary {
         const li = make('li');
         li.onclick = () => {
           input.value = text;
-          onInput(false);
+          onInput();
         };
 
         const match = make('span');
@@ -328,7 +328,7 @@ interface IssueSummary {
     }
   }
 
-  function kanban(root: HTMLElement, data: IssueSummary[], searcher: Searcher) {
+  function kanban(root: HTMLElement, data: IssueSummary[], searcher: Searcher, jobQueue: JobQueue) {
     setSuggestions(data);
 
     const titlebar = makeTitleBar(root, searcher);

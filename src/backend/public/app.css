@@ -313,6 +313,7 @@ body > footer {
   font-weight: bold;
   display: flex;
   align-items: center;
+  margin-top: 0.15em;
 }
 
 .trintech-kanban .card header .idcontainer {

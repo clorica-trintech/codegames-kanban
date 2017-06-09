@@ -44,7 +44,7 @@ type Searcher = {
           
           if (isConsecutiveOrWordBoundary) {
             character = prefix + character + postfix;
-            currentScore += 1 + currentScore;
+            currentScore += 1 + (currentScore * 0.5);
             patternIdx += 1;
           }
         } else {
@@ -52,15 +52,17 @@ type Searcher = {
         }
         totalScore += currentScore;
 
-        if (totalScore >= Number.MAX_SAFE_INTEGER) {
-          throw new Error('Score Exceeded Safe Values, Corpus Too Big');
-        }
+        // What could possibly go wrong?
+        
+        // if (totalScore >= Number.MAX_SAFE_INTEGER) {
+        //   throw new Error('Score Exceeded Safe Values, Corpus Too Big');
+        // }
         result.push(character);
       }
 
       if (patternIdx === pattern.length) {
         // On exact match set score to max value
-        totalScore = corpus === pattern ? Number.MAX_SAFE_INTEGER : totalScore;
+        totalScore = corpus === pattern ? Infinity : totalScore;
 
         return {
           rendered: result.join(''), 

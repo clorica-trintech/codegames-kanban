@@ -37,7 +37,7 @@
         ['To Do',
             ['Preparer', 'Reviewer', 'Approver', 'Proxy']],
         ['In Progress',
-            ['In Review', 'In Approval', 'Proxy']],
+            ['In Review', 'In Approval', 'In Proxy']],
         ['Done',
             ['Completed', 'Cancelled']]
     ]);
@@ -46,9 +46,9 @@
         'assignee',
         'name',
         'actionPlan',
-        'action',
         'status',
         'entity',
+        'closePeriod',
         'priority',
         'toDoRole',
         'inProgressStatus',
@@ -102,8 +102,8 @@
             case "inProgressStatus": return "In Progress Status";
             case "doneStatus": return "Done Status";
             case "canReopen": return "Can Re-open";
+            default: return key;
         }
-        return "";
     }
     const searchableText = new Map();
     const suggestionMap = new Map();
@@ -128,7 +128,7 @@
         for (const searchableField of searchableFields) {
             const option = make('option');
             option.value = searchableField;
-            option.textContent = searchableField;
+            option.textContent = getFieldDisplayName(searchableField);
             select.appendChild(option);
         }
         const caret = make('div');
@@ -146,7 +146,7 @@
         const typeAhead = make('ul');
         typeAhead.classList.add('type-ahead', 'hidden');
         search.appendChild(typeAhead);
-        function onInput(isOpenTypeAhead = true) {
+        function onInput() {
             const selectedOption = select.selectedOptions[0];
             const issueField = selectedOption.value;
             const searchTerm = input.value;
@@ -164,7 +164,7 @@
                         count: -1
                     };
                 });
-                if (suggestions.length && isOpenTypeAhead) {
+                if (suggestions.length) {
                     openTypeAhead(suggestions);
                 }
                 return;
@@ -194,7 +194,7 @@
                 }
             }
             const items = Array.from(typeAheadItemMap.values());
-            if (items.length && isOpenTypeAhead) {
+            if (items.length) {
                 openTypeAhead(items);
             }
         }
@@ -207,7 +207,7 @@
                 const li = make('li');
                 li.onclick = () => {
                     input.value = text;
-                    onInput(false);
+                    onInput();
                 };
                 const match = make('span');
                 match.innerHTML = html;
@@ -249,7 +249,7 @@
             }
         }
     }
-    function kanban(root, data, searcher) {
+    function kanban(root, data, searcher, jobQueue) {
         setSuggestions(data);
         const titlebar = makeTitleBar(root, searcher);
         root.appendChild(titlebar);

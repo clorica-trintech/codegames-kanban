@@ -10,6 +10,7 @@
     <footer>Trintech</footer>
     <script src="https://cdn.jsdelivr.net/npm/superagent@3.5.2/superagent.js"></script>
     <script src="/public/searcher.js"></script>
+    <script src="/public/asyncJobQueue.js"></script>
     <script src="/public/kanban.js"></script>
     <!-- Your Code Here -->
     <script>
@@ -25,7 +26,11 @@
             throw error;
           }
           const issues = response.body;
-          window.kanban(kanbanRoot, issues, window.searcher, window.Identicon);
+          window.kanban(
+            kanbanRoot, 
+            issues, 
+            window.searcher, 
+            window.jobQueue);
         });
     </script>
   </body>
