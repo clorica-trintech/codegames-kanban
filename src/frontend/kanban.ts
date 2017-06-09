@@ -62,6 +62,12 @@ interface IssueSummary {
       return toReturn;
     }
   }
+
+  function getSiblings(element: Element) {
+    return Array
+      .from(element.parentNode!.childNodes)
+      .filter(el => el !== element) as Element[];
+  }
   
   const workFlowTags = new Set<WorkFlowTag>([
     'To Do', 
@@ -93,8 +99,6 @@ interface IssueSummary {
     'canReopen'
   ]);
 
-  const COLLAPSE = 'collapse';
-
   function makeCardRows<T extends {}>(fields: T, isSummary: boolean) {      
     const rows: Element[] = [];
     const keys = Object.keys(fields);
@@ -115,11 +119,11 @@ interface IssueSummary {
       const rowVal = make('span');
       rowVal.classList.add('row-value');
       rowVal.textContent = value;
-
       if (key == 'dueDate') {
         var x = new Date(value);
         var y = new Date();
-        rowVal.classList.add('past-due');
+        if (x<y)
+          rowVal.classList.add('past-due');
       }
       
       row.appendChild(label);
@@ -166,7 +170,6 @@ interface IssueSummary {
     titleBar.appendChild(title);
 
     const search = make('span');
-    search.onclick = (event: Event) => event.stopPropagation();
     search.classList.add('search');
     titleBar.appendChild(search);
 
@@ -246,7 +249,7 @@ interface IssueSummary {
         const [text, card] = tuple;
 
         if (score !== 0) {
-          if (typeAheadItemMap.size < 10) {
+          if (typeAheadItemMap.size < 100) {
             const typeAheadItem = typeAheadItemMap.get(text) || {
               text, html: rendered, count: 0
             };
@@ -300,12 +303,11 @@ interface IssueSummary {
 
     input.addEventListener('input', debounce(() => onInput(), 500));
     input.addEventListener('focus', () => onInput());
-    document.addEventListener('click', closeTypeAhead);
+    input.addEventListener('blur', () => setTimeout(closeTypeAhead, 200));
     return titleBar;    
   }
 
   function setSuggestions(data: IssueSummary[]) {
-    // For returning early if everything has 5 suggestions
     const keySet = new Set();
 
     for (const summary of data) {
@@ -314,12 +316,8 @@ interface IssueSummary {
       for (const key of keys) {
         const set = suggestionMap.get(key) || new Set();
 
-        if (set.size === 5) {
+        if (set.size === 100) {
           keySet.add(key);
-
-          if (keySet.size >= 20) {
-            return;
-          }
         } else {
           set.add(summary[key]);
           suggestionMap.set(key, set);
@@ -328,7 +326,7 @@ interface IssueSummary {
     }
   }
 
-  function kanban(root: HTMLElement, data: IssueSummary[], searcher: Searcher, jobQueue: JobQueue) {
+  function kanban(root: HTMLElement, data: IssueSummary[], searcher: Searcher) {
     setSuggestions(data);
 
     const titlebar = makeTitleBar(root, searcher);
@@ -359,6 +357,7 @@ interface IssueSummary {
 
     const iframe = make('iframe');
     modal.appendChild(iframe);
+    iframe.src = 'http://localhost:8002/public/modal/default.png' ;
     document.body.appendChild(modal);
 
     const userIcon = new Map<string, string>();
@@ -389,7 +388,10 @@ interface IssueSummary {
 
       card.classList.add(...classes);
       card.addEventListener('click', (event: Event) => {
-        iframe.src = `http://localhost:8080/console/OC?&_oc_pid=RetrieveFormInFrame&_oc_tid=RetrieveFormInFrame&_orig_oc_tid=MyForms&_orig_oc_pid=MyForms&selected_id=&formlistversion=All&_view=Inbox&_button_clicked=&pageHit=true&_form_list_sid=_all&freq_lov_id=0&_cancel_orig_tid=MyForms&_cancel_orig_pid=MyForms&isBulkTransfer=&isBulkSubmit=&_cancelform_formlistsid=&_cancelform_reference=&action=&customPerPage=10&log_sid=14904&_oc_pid=RetrieveFormInFrame&_oc_tid=RetrieveFormInFrame&14904_acting_as_cm=art,U,-1&_firstpass=true&_ispopup=true&_nohelp=true#`;
+        iframe.src = 'http://localhost:8002/public/modal/' + issue.id + '.png' ;
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.align = 'center';
         iframe.onload = () => iframe.classList.add('ready');
         modal.classList.add('active');
         clickShield.classList.add('active');
@@ -494,7 +496,7 @@ interface IssueSummary {
       // card rows
       const summaryFields = pick(issue, 
         //'startDate',
-        //'dueDate',
+        'dueDate',
         //'actionPlan',
         //'priority', This needs to be a color
         //'entity',
@@ -503,7 +505,7 @@ interface IssueSummary {
 
       const detailsFields = pick(issue, 
         'startDate',
-        'dueDate',
+        //'dueDate',
         'actionPlan',
         'entity',
         'closePeriod'
@@ -516,6 +518,7 @@ interface IssueSummary {
         //'doneStatus', //need this in the filter
         //'canReopen', //need this in the filter
        ); 
+
 
       const rows = make('div');
       rows.classList.add('rows');
@@ -597,7 +600,7 @@ interface IssueSummary {
 
       const title = make('div');
       title.classList.add('title');
-      title.textContent = workFlowTag;
+      title.textContent = "  " + workFlowTag;
       header.appendChild(title);
 
       const minMax = make('div');
@@ -612,19 +615,19 @@ interface IssueSummary {
         for (const aColumn of columns) {
           // If the column is already collapsed
           if (aColumn === column) {
-            if (column.classList.contains(COLLAPSE)) {
+            if (column.classList.contains('collapse')) {
               isCollapseAll = false;
             }
           }
           // If some other column is not collapsed
-          else if (!aColumn.classList.contains(COLLAPSE)) {
+          else if (!aColumn.classList.contains('collapse')) {
             isCollapseAll = false;
           }
         }
 
         // If collapsing this column would have collapsed all, instead expand all
         if (isCollapseAll) {
-          columns.forEach(col => col.classList.remove(COLLAPSE));
+          columns.forEach(col => col.classList.remove('collapse'));
         }
         return isCollapseAll;
       }
@@ -633,42 +636,60 @@ interface IssueSummary {
       minMax.addEventListener('click', (event: Event) => {
         event.stopPropagation();
         const classes = column.classList;
-        const isCollapsed = classes.contains(COLLAPSE);
+        const isCollapsed = classes.contains('collapse');
         const isCollapseAll = checkOrDoCollapseAll();
 
         // Simply toggle the collapse state
         if (!isCollapseAll) {
-          isCollapsed ? classes.remove(COLLAPSE) : classes.add(COLLAPSE);
+          if (isCollapsed) {
+            classes.remove('collapse')
+          } else {
+            // Check to see if a sibling is promoted to hero
+            const [left, right] = getSiblings(column);
+            const leftCollapsed = left.classList.contains('collapse');
+            const rightCollapsed = right.classList.contains('collapse');
+
+            if (leftCollapsed !== rightCollapsed) {
+              (leftCollapsed ? right : left).classList.add('hero');
+            }
+            classes.add('collapse');
+          }
+        } else {
+          classes.remove('hero');
         }
       });
 
       // When the header is clicked collapse all the others
       header.addEventListener('click', () => {
         const classes = column.classList;
-        const isCollapsed = classes.contains(COLLAPSE);
+        const isCollapsed = classes.contains('collapse');
         const isCollapseAll = checkOrDoCollapseAll();
 
         if (!isCollapseAll) {
           if (isCollapsed) {
-            classes.remove(COLLAPSE);
+            classes.remove('collapse');
+            getSiblings(column).forEach(sib => sib.classList.remove('hero'));
           } 
           // If the column is already in an expanded state, expand it more
           // by collapsing everything else
           else {
+            classes.add('hero');
             const columns: Element[] = root.querySelectorAll('.column') as any;
 
             for (const aColumn of columns) {
               if (aColumn !== column) {
-                aColumn.classList.add(COLLAPSE);
+                aColumn.classList.add('collapse');
+                aColumn.classList.remove('hero');
               }
-            }        
-            column.classList.remove(COLLAPSE);
+            }
+            column.classList.remove('collapse');
           }
+        } else {
+          classes.remove('hero');
         }
       });
       column.appendChild(header);
-
-
+      
       // Filters
       const filterDock = make('div');
       filterDock.classList.add('filter-dock');
@@ -715,7 +736,6 @@ interface IssueSummary {
         label.textContent = status;
         filter.appendChild(label);
       }
-
 
       // Issue container
       const container = make('div');

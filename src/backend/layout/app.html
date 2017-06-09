@@ -5,15 +5,15 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="/public/app.css">
     <link rel="shortcut icon" type="image/x-icon" href="/public/images/site/favicon.ico" />
-    
   </head>
   <body>
-    <img src="/public/images/site/header.png" width="100%">
+  	<img src="/public/images/site/header.png" width="100%">
+    
     <div class="kanban-anchor"></div>
-    <footer>Copyright &copy; 1998-2017 Trintech. All Rights Reserved.</footer>
+    
+  	<footer>Copyright &copy; 1998-2017 Trintech. All Rights Reserved.</footer>
     <script src="https://cdn.jsdelivr.net/npm/superagent@3.5.2/superagent.js"></script>
     <script src="/public/searcher.js"></script>
-    <script src="/public/asyncJobQueue.js"></script>
     <script src="/public/kanban.js"></script>
     <!-- Your Code Here -->
     <script>
@@ -32,8 +32,7 @@
           window.kanban(
             kanbanRoot, 
             issues, 
-            window.searcher, 
-            window.jobQueue);
+            window.searcher);
         });
     </script>
   </body>

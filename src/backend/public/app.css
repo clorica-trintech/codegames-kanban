@@ -32,19 +32,13 @@ select {
 }
 
 .hidden, .filter-hidden {
-  height: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  transform: scaleY(0);
-  opacity: 0;
-  transition: transform 0.5s, margin 0.5s, padding 0.5s, height 0.5s;
+  display: none !important;
 }
 
 .kanban-anchor {
-  width: 100%;
-  height: 60em;
+  width: 75%;
+  margin: auto;
+  height: 120em;
   overflow: scroll;
 }
 
@@ -129,6 +123,8 @@ body > footer {
   top: 3em;
   border: 1px solid #ddd;
   z-index: 2;
+  max-height: 26.5em;
+  overflow: scroll;
 }
 
 .type-ahead li:hover {
@@ -155,6 +151,7 @@ body > footer {
 
 .trintech-kanban .filter-dock .filter-set {
   display: flex;
+  white-space: nowrap;
 }
 
 .trintech-kanban .filter-dock .filter {
@@ -356,6 +353,7 @@ body > footer {
 
 .trintech-kanban .card .row {
   margin-bottom: 0.1em;
+  margin-left: 3.5em;
 }
 
 .trintech-kanban .card .label {
@@ -442,8 +440,8 @@ body > footer {
 
 .trintech-kanban-modal {
   position: absolute;
-  height: 95%;
-  width: 95%;
+  height: 90%;
+  width: 60%;
   padding: 2em;
   background-color: rgb(250, 250, 250);
   margin: auto;
@@ -470,6 +468,10 @@ body > footer {
 
 .trintech-kanban-modal > iframe.ready {
   opacity: 1;
+}
+
+.trintech-kanban-modal > iframe.ready > html > body > img{
+  width: 100%;
 }
 
 .trintech-kanban-shield {
