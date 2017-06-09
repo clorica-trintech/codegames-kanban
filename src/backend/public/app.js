@@ -133,6 +133,11 @@
             const rowVal = make('span');
             rowVal.classList.add('row-value');
             rowVal.textContent = value;
+            if (key == 'dueDate') {
+                var x = new Date(value);
+                var y = new Date();
+                rowVal.classList.add('past-due');
+            }
             row.appendChild(label);
             row.appendChild(rowVal);
             rows.push(row);
@@ -145,7 +150,7 @@
             case "id": return "ID";
             case "owner": return "Owner";
             case "assignee": return "Assignee";
-            case "workFlowTag": return "WorkFlowT ag";
+            case "workFlowTag": return "WorkFlow Tag";
             case "name": return "Name";
             case "actionPlan": return "Action Plan";
             case "action": return "Action";
@@ -268,26 +273,45 @@
         const iframe = make('iframe');
         modal.appendChild(iframe);
         document.body.appendChild(modal);
+        const userIcon = new Map();
+        function getUserIcon(name) {
+            if (!userIcon.has(name)) {
+                userIcon.set(name, "public/images/icons/" + (userIcon.size + 1) + ".png");
+            }
+            var iconImg = userIcon.get(name);
+            return iconImg == undefined ? "" : iconImg;
+        }
         function makeCard(issue) {
             const card = make('div');
-            card.classList.add('card', 'compact', issue.priority.toLocaleLowerCase());
+            card.classList.add('card', 'compact');
             card.addEventListener('click', (event) => {
                 iframe.src = `http://localhost:8080/console/OC?&_oc_pid=RetrieveFormInFrame&_oc_tid=RetrieveFormInFrame&_orig_oc_tid=MyForms&_orig_oc_pid=MyForms&selected_id=&formlistversion=All&_view=Inbox&_button_clicked=&pageHit=true&_form_list_sid=_all&freq_lov_id=0&_cancel_orig_tid=MyForms&_cancel_orig_pid=MyForms&isBulkTransfer=&isBulkSubmit=&_cancelform_formlistsid=&_cancelform_reference=&action=&customPerPage=10&log_sid=14904&_oc_pid=RetrieveFormInFrame&_oc_tid=RetrieveFormInFrame&14904_acting_as_cm=art,U,-1&_firstpass=true&_ispopup=true&_nohelp=true#`;
                 iframe.onload = () => iframe.classList.add('ready');
                 modal.classList.add('active');
                 clickShield.classList.add('active');
             });
+            const aside = make('aside');
+            if (issue.priority === 'Y') {
+                aside.classList.add('critical');
+            }
+            card.appendChild(aside);
+            const main = make('main');
+            card.appendChild(main);
             // card header
             const header = make('header');
-            const idContainer = make('div');
+            main.appendChild(header);
             const assigneeContainer = make('div');
             assigneeContainer.classList.add('assignee');
-            const assigneeBox = make('div');
-            assigneeBox.textContent = getInitials(issue.assignee);
-            assigneeContainer.appendChild(assigneeBox);
-            assigneeContainer.style.backgroundColor = getBackgroundColor(issue.assignee);
+            //assigneeContainer.textContent = getInitials(issue.assignee);
+            //assigneeContainer.style.backgroundColor = getBackgroundColor(issue.assignee);
+            const img = make('img');
+            img.src = getUserIcon(issue.assignee);
+            img.width = 40;
+            img.height = 40;
+            img.title = issue.assignee;
+            assigneeContainer.appendChild(img);
             header.appendChild(assigneeContainer);
-            card.appendChild(header);
+            const idContainer = make('div');
             const name = make('div');
             name.classList.add('name');
             name.textContent = issue.name;
@@ -298,22 +322,94 @@
             idContainer.appendChild(id);
             header.appendChild(idContainer);
             // card rows
-            const summaryFields = pick(issue, 'actionPlan', 
-            //'priority', This needs to be a color
-            'startDate', 'dueDate');
-            const detailsFields = pick(issue, 'status', //we dont need this value
+            const summaryFields = pick(issue, 
+            //'startDate',
+            'dueDate');
+            const detailsFields = pick(issue, 'startDate', 
+            //'dueDate',
+            'actionPlan', 'entity', 'closePeriod'
+            //'status', //we dont need this value
             //'action', we dont have this value
-            'entity', 'closePeriod', 'toDoRole', //need this in the filter
-            'inProgressStatus', //need this in the filter
-            'doneStatus', //need this in the filter
-            'canReopen'); //need this in the filter
+            //'entity',
+            //'closePeriod'
+            //'toDoRole', //need this in the filter
+            //'inProgressStatus', //need this in the filter
+            //'doneStatus', //need this in the filter
+            //'canReopen', //need this in the filter
+            );
             const rows = make('div');
             rows.classList.add('rows');
             const summaryRows = makeCardRows(summaryFields, true);
             const detailsRows = makeCardRows(detailsFields, false);
             summaryRows.forEach(row => rows.appendChild(row));
             detailsRows.forEach(row => rows.appendChild(row));
-            card.appendChild(rows);
+            main.appendChild(rows);
+            const tagDiv = make('div');
+            if (issue.workFlowTag == 'To Do') {
+                //show toDoRole
+                const toDoRole = make('div');
+                toDoRole.classList.add('tag');
+                toDoRole.textContent = issue.toDoRole;
+                switch (issue.toDoRole) {
+                    case "Preparer":
+                        toDoRole.classList.add('preparer');
+                        break;
+                    case "Reviewer":
+                        toDoRole.classList.add('reviewer');
+                        break;
+                    case "Approver":
+                        toDoRole.classList.add('approver');
+                        break;
+                    case "Proxy":
+                        toDoRole.classList.add('proxy');
+                        break;
+                }
+                tagDiv.appendChild(toDoRole);
+            }
+            else if (issue.workFlowTag == 'In Progress') {
+                //show inProgressStatus
+                const inProgressStatus = make('div');
+                inProgressStatus.classList.add('tag');
+                inProgressStatus.textContent = issue.inProgressStatus;
+                switch (issue.inProgressStatus) {
+                    case "In Review":
+                        inProgressStatus.classList.add('in-review');
+                        break;
+                    case "In Approval":
+                        inProgressStatus.classList.add('in-approval');
+                        break;
+                    case "Proxy":
+                        inProgressStatus.classList.add('in-proxy');
+                        break;
+                }
+                tagDiv.appendChild(inProgressStatus);
+            }
+            else if (issue.workFlowTag == 'Done') {
+                //show Completed/Cancelled and Can Reopen
+                const doneStatus = make('div');
+                doneStatus.classList.add('tag');
+                doneStatus.title = issue.doneStatus;
+                switch (issue.doneStatus) {
+                    case "Completed":
+                        doneStatus.innerHTML = "&#10004;";
+                        doneStatus.classList.add('completed');
+                        break;
+                    case "Cancelled":
+                        doneStatus.innerHTML = "&#10008;";
+                        doneStatus.classList.add('cancelled');
+                        break;
+                }
+                tagDiv.appendChild(doneStatus);
+                if (issue.canReopen) {
+                    const canReopen = make('div');
+                    canReopen.innerHTML = "&#8635;"; //9851
+                    canReopen.classList.add('tag');
+                    canReopen.classList.add('can-reopen');
+                    canReopen.title = "Can Re-open";
+                    tagDiv.appendChild(canReopen);
+                }
+            }
+            main.appendChild(tagDiv);
             const keys = Object.keys(issue);
             for (const key of keys) {
                 if (searchableFields.has(key)) {
@@ -423,6 +519,12 @@
             }
             return column;
         }
+        const filterDock = make('div');
+        filterDock.classList.add('filter-dock');
+        container.appendChild(filterDock);
+        const columnContainer = make('div');
+        columnContainer.classList.add('column-container');
+        container.appendChild(columnContainer);
         // Create all the layout elements 
         for (const workFlowTag of workFlowTags) {
             // Filter the data down to those specific to this tag
@@ -430,7 +532,7 @@
                 return issue.workFlowTag === workFlowTag;
             });
             const column = makeColumn(workFlowTag, dataForTag);
-            container.appendChild(column);
+            columnContainer.appendChild(column);
         }
     }
     global.kanban = kanban;
