@@ -2,6 +2,12 @@ type WorkFlowTag = 'To Do' |
   'In Progress' |
   'Done';
 
+type TypeAheadItem = {
+  text: string;
+  html: string;
+  count: number;
+}
+
 interface IssueSummary {
   workFlowTag: WorkFlowTag;
   'assignee': string;
@@ -148,6 +154,7 @@ interface IssueSummary {
   }
 
   const searchableText = new Map<keyof IssueSummary, [string, any][]>();
+  const suggestionMap = new Map<string, Set<string>>();
 
   function makeTitleBar(root: Element, searcher: Searcher) {
     const titleBar = make('div');
@@ -159,6 +166,7 @@ interface IssueSummary {
     titleBar.appendChild(title);
 
     const search = make('span');
+    search.onclick = (event: Event) => event.stopPropagation();
     search.classList.add('search');
     titleBar.appendChild(search);
 
@@ -198,59 +206,131 @@ interface IssueSummary {
     typeAhead.classList.add('type-ahead', 'hidden');
     search.appendChild(typeAhead);
 
-    input.addEventListener('input', debounce(() => {
+    function onInput(isOpenTypeAhead = true) {
+      const selectedOption = select.selectedOptions[0];
+      const issueField = selectedOption.value;
       const searchTerm = input.value;
-
-      typeAhead.innerHTML = '';
 
       if (!searchTerm) {
         const cards = root.querySelectorAll('.card') as any;
-        cards.forEach((card: Element) => card.classList.remove('hidden'));
+
+        for (const card of cards) {
+          card.classList.remove('hidden');
+        }
+      
+        const suggestions = Array
+          .from(suggestionMap.get(issueField)!)
+          .map(suggestion => {
+            return {
+              text: suggestion,
+              html: suggestion,
+              count: -1
+            };
+          });
+
+        if (suggestions.length && isOpenTypeAhead) {
+          openTypeAhead(suggestions);
+        }
         return;
       }
-      const selectedOption = select.selectedOptions[0];
-      const issueField = selectedOption.value;
 
       if (issueField === 'Search by Field') {
         return;
       }
       const searchTuples = searchableText.get(issueField as any)!;
       const results = searcher.score(searchTerm, searchTuples, '<strong>', '</strong>');
+      const typeAheadItemMap = new Map<string, TypeAheadItem>();
 
-      let count = 0;
+      // Process results
+      for (const { score, rendered, tuple } of results) {
+        const [text, card] = tuple;
 
-      if (results.length) {
-        typeAhead.classList.remove('hidden');
-      } else {
-        typeAhead.classList.add('hidden');
-      }
-
-      for (const result of results) {
-        const card = result.tuple[1];
-
-        if (result.score !== 0) {
-          count++;
-
-          if (count < 10) {
-            const li = make('li');
-            li.innerHTML = result.value;
-            typeAhead.appendChild(li);
+        if (score !== 0) {
+          if (typeAheadItemMap.size < 10) {
+            const typeAheadItem = typeAheadItemMap.get(text) || {
+              text, html: rendered, count: 0
+            };
+            typeAheadItem.count += 1;
+            typeAheadItemMap.set(text, typeAheadItem);
           }
+          // Filter the cards
           card.classList.remove('hidden');
         } else {
           card.classList.add('hidden');
         }
       }
-    }, 500));
+      const items = Array.from(typeAheadItemMap.values());
 
-    input.addEventListener('blur', () => {
+      if (items.length && isOpenTypeAhead) {
+        openTypeAhead(items);
+      }
+    }
+
+    function openTypeAhead(items: TypeAheadItem[]) {
+      if (!items.length) {
+        return;
+      }
+      typeAhead.innerHTML = '';
+
+      for (const { text, html, count } of items) {
+        const li = make('li');
+        li.onclick = () => {
+          input.value = text;
+          onInput(false);
+        };
+
+        const match = make('span');
+        match.innerHTML = html;
+        li.appendChild(match);
+
+        const counter = make('span');
+        counter.classList.add('count');
+        counter.textContent = count === -1 ? '' : '' + count;
+        li.appendChild(counter);
+        
+        typeAhead.appendChild(li);
+      }
+      typeAhead.classList.remove('hidden');
+    }
+
+    function closeTypeAhead() {
       typeAhead.innerHTML = '';
       typeAhead.classList.add('hidden');
-    });
+    }
+
+    input.addEventListener('input', debounce(() => onInput(), 500));
+    input.addEventListener('focus', () => onInput());
+    document.addEventListener('click', closeTypeAhead);
     return titleBar;    
   }
 
+  function setSuggestions(data: IssueSummary[]) {
+    // For returning early if everything has 5 suggestions
+    const keySet = new Set();
+
+    for (const summary of data) {
+      const keys: (keyof IssueSummary)[] = Object.keys(summary) as any;
+
+      for (const key of keys) {
+        const set = suggestionMap.get(key) || new Set();
+
+        if (set.size === 5) {
+          keySet.add(key);
+
+          if (keySet.size >= 20) {
+            return;
+          }
+        } else {
+          set.add(summary[key]);
+          suggestionMap.set(key, set);
+        }
+      }
+    }
+  }
+
   function kanban(root: HTMLElement, data: IssueSummary[], searcher: Searcher) {
+    setSuggestions(data);
+
     const titlebar = makeTitleBar(root, searcher);
     root.appendChild(titlebar);
 
@@ -334,64 +414,20 @@ interface IssueSummary {
       //assigneeContainer.style.backgroundColor = getBackgroundColor(issue.assignee);
       const img = make('img');
       img.src = getUserIcon(issue.assignee);
-      img.width = 40;
-      img.height = 40;
+      img.width = 35;
+      img.height = 35;
       img.title = issue.assignee;
       assigneeContainer.appendChild(img);
       header.appendChild(assigneeContainer);
 
       const idContainer = make('div');
+      idContainer.classList.add('idcontainer');
       const name = make('div');
       name.classList.add('name');
       name.textContent = issue.name;
       idContainer.appendChild(name);
 
-      const id = make('div');
-      id.classList.add('issue-id');
-      id.textContent = `${issue.id}`;
-      idContainer.appendChild(id);
-
-      header.appendChild(idContainer);
-
-      // card rows
-      const summaryFields = pick(issue, 
-        //'startDate',
-        'dueDate',
-        //'actionPlan',
-        //'priority', This needs to be a color
-        //'entity',
-        //'closePeriod'
-        );
-
-      const detailsFields = pick(issue, 
-        'startDate',
-        //'dueDate',
-        'actionPlan',
-        'entity',
-        'closePeriod'
-        //'status', //we dont need this value
-        //'action', we dont have this value
-        //'entity',
-        //'closePeriod'
-        //'toDoRole', //need this in the filter
-        //'inProgressStatus', //need this in the filter
-        //'doneStatus', //need this in the filter
-        //'canReopen', //need this in the filter
-       ); 
-
-      const rows = make('div');
-      rows.classList.add('rows');
-
-      const summaryRows = makeCardRows(summaryFields, true);
-      const detailsRows = makeCardRows(detailsFields, false);
-
-      summaryRows.forEach(row => rows.appendChild(row));
-      detailsRows.forEach(row => rows.appendChild(row));
-      main.appendChild(rows);
-
-
       const tagDiv = make('div');
-
       if (issue.workFlowTag == 'To Do') {
         //show toDoRole
         const toDoRole = make('div');
@@ -444,11 +480,53 @@ interface IssueSummary {
           canReopen.title = "Can Re-open"
           tagDiv.appendChild(canReopen);
         }
-        
       }
 
-      main.appendChild(tagDiv);
+      idContainer.appendChild(tagDiv);
       
+      const id = make('div');
+      id.classList.add('issue-id');
+      id.textContent = `${issue.id}`;
+      idContainer.appendChild(id);
+
+      header.appendChild(idContainer);
+
+      // card rows
+      const summaryFields = pick(issue, 
+        //'startDate',
+        //'dueDate',
+        //'actionPlan',
+        //'priority', This needs to be a color
+        //'entity',
+        //'closePeriod'
+        );
+
+      const detailsFields = pick(issue, 
+        'startDate',
+        'dueDate',
+        'actionPlan',
+        'entity',
+        'closePeriod'
+        //'status', //we dont need this value
+        //'action', we dont have this value
+        //'entity',
+        //'closePeriod'
+        //'toDoRole', //need this in the filter
+        //'inProgressStatus', //need this in the filter
+        //'doneStatus', //need this in the filter
+        //'canReopen', //need this in the filter
+       ); 
+
+      const rows = make('div');
+      rows.classList.add('rows');
+
+      const summaryRows = makeCardRows(summaryFields, true);
+      const detailsRows = makeCardRows(detailsFields, false);
+
+      summaryRows.forEach(row => rows.appendChild(row));
+      detailsRows.forEach(row => rows.appendChild(row));
+      main.appendChild(rows);
+
       const keys: (keyof IssueSummary)[] = Object.keys(issue) as any;
 
       for (const key of keys) {
@@ -513,54 +591,6 @@ interface IssueSummary {
     function makeColumn(workFlowTag: WorkFlowTag, issues: IssueSummary[]) {
       const column = make('div');
       column.classList.add('column');
-
-      // Filters
-      const filterDock = make('div');
-      filterDock.classList.add('filter-dock');
-      column.appendChild(filterDock);
-
-      const filterBar = make('div');
-      filterBar.classList.add('filter-bar');
-      filterDock.appendChild(filterBar);
-
-      const htmlClass = workFlowTag.toLocaleLowerCase().replace(/\s+/, '-');
-      const filterSet = make('div');
-      filterSet.classList.add('filter-set', htmlClass);
-      filterBar.appendChild(filterSet);
-
-      const statuses = workFlowTagStatuses.get(workFlowTag)!;
-
-      for (const status of statuses) {
-        const filter = make('div');
-        filter.setAttribute('status', status.toLocaleLowerCase().replace(/\s+/, '-'))
-        filter.classList.add('filter');
-        filterSet.appendChild(filter);
-
-        const checkbox = make('input');
-        checkbox.type = 'checkbox';
-        filter.appendChild(checkbox);
-
-        function onclick (event: Event) {
-          event.stopPropagation();
-          checkbox.checked = !checkbox.checked;
-          const activeKeys: string[] = [];
-          const filters: Element[] = filterSet.querySelectorAll('.filter') as any;
-
-          for (const filter of filters) {
-            const input: HTMLInputElement = filter.children[0] as any;
-
-            if (input.checked) {
-              activeKeys.push(filter.getAttribute('status')!);
-            }
-          }
-          filterColumn(column, activeKeys);
-        }
-        filter.onclick = onclick;
-
-        const label = make('p');
-        label.textContent = status;
-        filter.appendChild(label);
-      }
 
       // Column header
       const header = make('header');
@@ -637,6 +667,55 @@ interface IssueSummary {
         }
       });
       column.appendChild(header);
+
+
+      // Filters
+      const filterDock = make('div');
+      filterDock.classList.add('filter-dock');
+      column.appendChild(filterDock);
+
+      const filterBar = make('div');
+      filterBar.classList.add('filter-bar');
+      filterDock.appendChild(filterBar);
+
+      const htmlClass = workFlowTag.toLocaleLowerCase().replace(/\s+/, '-');
+      const filterSet = make('div');
+      filterSet.classList.add('filter-set', htmlClass);
+      filterBar.appendChild(filterSet);
+
+      const statuses = workFlowTagStatuses.get(workFlowTag)!;
+
+      for (const status of statuses) {
+        const filter = make('div');
+        filter.setAttribute('status', status.toLocaleLowerCase().replace(/\s+/, '-'))
+        filter.classList.add('filter');
+        filterSet.appendChild(filter);
+
+        const checkbox = make('input');
+        checkbox.type = 'checkbox';
+        filter.appendChild(checkbox);
+
+        function onclick (event: Event) {
+          checkbox.checked = !checkbox.checked;
+          const activeKeys: string[] = [];
+          const filters: Element[] = filterSet.querySelectorAll('.filter') as any;
+
+          for (const filter of filters) {
+            const input: HTMLInputElement = filter.children[0] as any;
+
+            if (input.checked) {
+              activeKeys.push(filter.getAttribute('status')!);
+            }
+          }
+          filterColumn(column, activeKeys);
+        }
+        filter.onclick = onclick;
+
+        const label = make('p');
+        label.textContent = status;
+        filter.appendChild(label);
+      }
+
 
       // Issue container
       const container = make('div');

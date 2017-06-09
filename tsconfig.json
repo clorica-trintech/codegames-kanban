@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "allowJs": true,
-    "outDir": "./.build",
+    "outDir": "./src/backend/public",
     "target": "es2015",
     // "sourceMap": true,
     "lib": ["es6", "dom"],
@@ -13,7 +13,7 @@
     "jsx": "react"
   },
   "include": [
-    "./src/**/*"
+    "./src/frontend/*"
   ],
   "types": [
     "node"

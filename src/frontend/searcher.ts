@@ -1,5 +1,5 @@
 type MatchResult = {
-  value: string;
+  rendered: string;
   score: number;
 };
 
@@ -63,13 +63,13 @@ type Searcher = {
         totalScore = corpus === pattern ? Number.MAX_SAFE_INTEGER : totalScore;
 
         return {
-          value: result.join(''), 
+          rendered: result.join(''), 
           score: totalScore
         };
       }
 
       return {
-        value: corpus,
+        rendered: corpus,
         score: 0
       };
     },
@@ -80,7 +80,7 @@ type Searcher = {
           const result = searcher.match(pattern, corpus, prefix, postfix);
           
           acc.push({
-            value: result.value,
+            rendered: result.rendered,
             score: result.score,
             tuple,
           });
@@ -89,7 +89,7 @@ type Searcher = {
         }, [])
         .sort((a, b) => {
           const result = b.score - a.score;
-          return result ? result : b.value.localeCompare(a.value);
+          return result ? result : b.tuple[0].localeCompare(a.tuple[0]);
         });
     }
   };
