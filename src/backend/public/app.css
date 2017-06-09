@@ -31,7 +31,7 @@ select {
   appearance: none;
 }
 
-.hidden {
+.hidden, .filter-hidden {
   height: 0 !important;
   padding: 0 !important;
   margin: 0 !important;
@@ -39,7 +39,7 @@ select {
   box-shadow: none !important;
   transform: scaleY(0);
   opacity: 0;
-  transition: 0.5s;
+  transition: transform 0.5s, margin 0.5s, padding 0.5s, height 0.5s;
 }
 
 .kanban-anchor {
@@ -54,14 +54,6 @@ body > footer {
   height: 6em;
   color: #ddd;
   border-top: 1px solid #ddd;
-}
-
-.trintech-kanban .filter-dock {
-  height: 3em;
-  display: flex;
-  align-items: center;
-  position: relative;
-  background-color: #ddd;
 }
 
 .trintech-kanban .column-container {
@@ -87,10 +79,11 @@ body > footer {
 .kanban-titlebar .search {
   border: 1px solid #ccc;
   height: 2.3em;
-  width: 32.65%;
+  width: 30%;
   display: flex;
   margin-right: .5em;
   border-radius: .3em;
+  position: relative;
 }
 
 .kanban-titlebar .search select {
@@ -126,9 +119,9 @@ body > footer {
 }
 
 .kanban-titlebar .search .type-ahead {
-  background-color: #fff;
+  background-color: rgb(250, 250, 250);
   position: absolute;
-  width: 32.65%;
+  width: 30%;
   margin: 0;
   padding: 0;
   top: 3em;
@@ -142,6 +135,40 @@ body > footer {
 
 .kanban-titlebar .search li:hover {
   background-color: #eee;
+}
+
+.trintech-kanban .filter-dock {
+  height: 3em;
+  position: relative;
+  background-color: #ddd;
+}
+
+.trintech-kanban .filter-dock .filter-set {
+  display: flex;
+}
+
+.trintech-kanban .filter-dock .filter {
+  background-color: rgb(245, 245, 245);
+  padding: .5em;
+}
+
+.trintech-kanban .filter-dock .filter + .filter {
+  margin-left: .3em;
+}
+
+.trintech-kanban .filter-dock .filter:hover {
+  cursor: pointer;
+  background-color: rgb(255, 255, 255);
+}
+
+.trintech-kanban .filter-dock .filter input:hover {
+  cursor: pointer;
+}
+
+.trintech-kanban .filter-dock .filter > p {
+  display: inline;
+  margin-left: .3em;
+  pointer-events: none;
 }
 
 .trintech-kanban .title {
@@ -187,16 +214,20 @@ body > footer {
   writing-mode: vertical-lr;
 }
 
+.trintech-kanban .column.collapse .filter-bar {
+  display: none;
+}
+
 .trintech-kanban .column:hover:not(.collapse) .min-max {
-  color: #fff;
+  color: rgb(250, 250, 250);
 }
 
 .trintech-kanban .column > header {
-  padding: 0 .5em;
+  padding: 0.5em;
   font-size: 1.2em;
   border-radius: 4px 4px 0 0;
   background-color: #3498db;
-  color: #fff;
+  color: rgb(250, 250, 250);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -231,7 +262,6 @@ body > footer {
 .trintech-kanban .min-max:before {
   content: ">";
   position: absolute;
-  top: -1px;
   left: 9px;
 }
 
@@ -239,7 +269,7 @@ body > footer {
   margin: 0.5em 0.5em 0 0.5em;
   border-radius: 0.5em;
   border-right: none;
-  background-color: #fff;
+  background-color: rgb(250, 250, 250);
   border: 1px solid #eee;
   box-shadow: 5px 5px 6px #eee;
   display: flex;
@@ -257,6 +287,7 @@ body > footer {
 
 .trintech-kanban .card:hover {
   cursor: pointer;
+  background-color: rgb(250, 250, 250);
 }
 
 .trintech-kanban .card:not(:hover) .row:not(.summary) {
@@ -383,6 +414,7 @@ body > footer {
     line-height: 1.1em;
 }
 
+
 .trintech-kanban-modal:not(.active) {
   display: none;
 }
@@ -392,7 +424,7 @@ body > footer {
   height: 95%;
   width: 95%;
   padding: 2em;
-  background-color: #fff;
+  background-color: rgb(250, 250, 250);
   margin: auto;
   position: absolute;
   top: -30px;

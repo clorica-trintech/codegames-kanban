@@ -63,6 +63,15 @@ interface IssueSummary {
     'Done'
   ]);
 
+  const workFlowTagStatuses = new Map<WorkFlowTag, string[]>([
+    ['To Do', 
+      ['Preparer', 'Reviewer', 'Approver', 'Proxy']],
+    ['In Progress', 
+      ['In Review', 'In Approval', 'Proxy']],
+    ['Done', 
+      ['Completed', 'Cancelled']]
+  ]);
+
   const searchableFields = new Set<keyof IssueSummary>([
     'id', 
     'assignee', 
@@ -78,6 +87,7 @@ interface IssueSummary {
     'canReopen'
   ]);
 
+  const COLLAPSE = 'collapse';
 
   function makeCardRows<T extends {}>(fields: T, isSummary: boolean) {      
     const rows: Element[] = [];
@@ -105,7 +115,7 @@ interface IssueSummary {
         var y = new Date();
         rowVal.classList.add('past-due');
       }
-
+      
       row.appendChild(label);
       row.appendChild(rowVal);
       rows.push(row);
@@ -113,7 +123,6 @@ interface IssueSummary {
     return rows;
   }
 
-  //Ok this is real stupid, but I needed something fast
   function getFieldDisplayName(key: string) {
     switch (key)
     {
@@ -219,7 +228,6 @@ interface IssueSummary {
       for (const result of results) {
         const card = result.tuple[1];
 
-        // For exact match only `result.score === Number.MAX_SAFE_INTEGER`
         if (result.score !== 0) {
           count++;
 
@@ -235,8 +243,10 @@ interface IssueSummary {
       }
     }, 500));
 
-    input.addEventListener('blur', () => typeAhead.innerHTML = '');
-
+    input.addEventListener('blur', () => {
+      typeAhead.innerHTML = '';
+      typeAhead.classList.add('hidden');
+    });
     return titleBar;    
   }
 
@@ -271,7 +281,6 @@ interface IssueSummary {
     modal.appendChild(iframe);
     document.body.appendChild(modal);
 
-
     const userIcon = new Map<string, string>();
 
     function getUserIcon(name: string) {
@@ -281,10 +290,24 @@ interface IssueSummary {
       var iconImg = userIcon.get(name);
       return iconImg == undefined ? "" : iconImg;
     }
-
+    
     function makeCard(issue: IssueSummary) {
       const card = make('div');
-      card.classList.add('card', 'compact');
+      const classes = ['card', 'compact'];
+
+      const {
+        toDoRole,
+        inProgressStatus,
+        doneStatus
+      } = issue;
+
+      const status = [toDoRole, inProgressStatus, doneStatus].filter(i => !!i);
+
+      for (const item of status) {
+        classes.push(item.toLocaleLowerCase().replace(/\s+/, '-'))
+      }
+
+      card.classList.add(...classes);
       card.addEventListener('click', (event: Event) => {
         iframe.src = `http://localhost:8080/console/OC?&_oc_pid=RetrieveFormInFrame&_oc_tid=RetrieveFormInFrame&_orig_oc_tid=MyForms&_orig_oc_pid=MyForms&selected_id=&formlistversion=All&_view=Inbox&_button_clicked=&pageHit=true&_form_list_sid=_all&freq_lov_id=0&_cancel_orig_tid=MyForms&_cancel_orig_pid=MyForms&isBulkTransfer=&isBulkSubmit=&_cancelform_formlistsid=&_cancelform_reference=&action=&customPerPage=10&log_sid=14904&_oc_pid=RetrieveFormInFrame&_oc_tid=RetrieveFormInFrame&14904_acting_as_cm=art,U,-1&_firstpass=true&_ispopup=true&_nohelp=true#`;
         iframe.onload = () => iframe.classList.add('ready');
@@ -309,14 +332,12 @@ interface IssueSummary {
       assigneeContainer.classList.add('assignee');
       //assigneeContainer.textContent = getInitials(issue.assignee);
       //assigneeContainer.style.backgroundColor = getBackgroundColor(issue.assignee);
-
       const img = make('img');
       img.src = getUserIcon(issue.assignee);
       img.width = 40;
       img.height = 40;
       img.title = issue.assignee;
       assigneeContainer.appendChild(img);
-
       header.appendChild(assigneeContainer);
 
       const idContainer = make('div');
@@ -366,8 +387,8 @@ interface IssueSummary {
 
       summaryRows.forEach(row => rows.appendChild(row));
       detailsRows.forEach(row => rows.appendChild(row));
-      
       main.appendChild(rows);
+
 
       const tagDiv = make('div');
 
@@ -427,8 +448,7 @@ interface IssueSummary {
       }
 
       main.appendChild(tagDiv);
-
-
+      
       const keys: (keyof IssueSummary)[] = Object.keys(issue) as any;
 
       for (const key of keys) {
@@ -470,9 +490,77 @@ interface IssueSummary {
       return initials;
     }
 
+    function filterColumn(column: Element, keys: string[]) {
+      const cards: Element[] = column.querySelectorAll('.card') as any;
+
+      if (keys.length) {
+        outer: for (const card of cards) {
+          for (const key of keys) {
+            if (card.classList.contains(key)) {
+              card.classList.remove('filter-hidden');
+              continue outer;
+            }
+          }
+          card.classList.add('filter-hidden');
+        }
+      } else {
+        for (const card of cards) {
+          card.classList.remove('filter-hidden');
+        }
+      }
+    }
+
     function makeColumn(workFlowTag: WorkFlowTag, issues: IssueSummary[]) {
       const column = make('div');
       column.classList.add('column');
+
+      // Filters
+      const filterDock = make('div');
+      filterDock.classList.add('filter-dock');
+      column.appendChild(filterDock);
+
+      const filterBar = make('div');
+      filterBar.classList.add('filter-bar');
+      filterDock.appendChild(filterBar);
+
+      const htmlClass = workFlowTag.toLocaleLowerCase().replace(/\s+/, '-');
+      const filterSet = make('div');
+      filterSet.classList.add('filter-set', htmlClass);
+      filterBar.appendChild(filterSet);
+
+      const statuses = workFlowTagStatuses.get(workFlowTag)!;
+
+      for (const status of statuses) {
+        const filter = make('div');
+        filter.setAttribute('status', status.toLocaleLowerCase().replace(/\s+/, '-'))
+        filter.classList.add('filter');
+        filterSet.appendChild(filter);
+
+        const checkbox = make('input');
+        checkbox.type = 'checkbox';
+        filter.appendChild(checkbox);
+
+        function onclick (event: Event) {
+          event.stopPropagation();
+          checkbox.checked = !checkbox.checked;
+          const activeKeys: string[] = [];
+          const filters: Element[] = filterSet.querySelectorAll('.filter') as any;
+
+          for (const filter of filters) {
+            const input: HTMLInputElement = filter.children[0] as any;
+
+            if (input.checked) {
+              activeKeys.push(filter.getAttribute('status')!);
+            }
+          }
+          filterColumn(column, activeKeys);
+        }
+        filter.onclick = onclick;
+
+        const label = make('p');
+        label.textContent = status;
+        filter.appendChild(label);
+      }
 
       // Column header
       const header = make('header');
@@ -485,8 +573,6 @@ interface IssueSummary {
       const minMax = make('div');
       minMax.classList.add('min-max');
       header.appendChild(minMax);
-
-      const COLLAPSE = 'collapse';
 
       function checkOrDoCollapseAll() {
         const columns: Element[] = [...root.querySelectorAll('.column') as any];
@@ -539,7 +625,7 @@ interface IssueSummary {
           // If the column is already in an expanded state, expand it more
           // by collapsing everything else
           else {
-            const columns: Element[] = [...root.querySelectorAll('.column') as any];
+            const columns: Element[] = root.querySelectorAll('.column') as any;
 
             for (const aColumn of columns) {
               if (aColumn !== column) {
@@ -563,10 +649,6 @@ interface IssueSummary {
       } 
       return column;
     }
-
-    const filterDock = make('div');
-    filterDock.classList.add('filter-dock');
-    container.appendChild(filterDock);
 
     const columnContainer = make('div');
     columnContainer.classList.add('column-container');

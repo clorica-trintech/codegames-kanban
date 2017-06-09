@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc --pretty",
     "render": "ts-node ./tool/renderScripts.ts",
-    "start": "ts-node ./src/backend/main.ts"
+    "start": "ts-node ./src/backend/main.ts",
+    "ahq": "ts-node ./tool/adhocQuery.ts"
   },
   "license": "ISC",
   "devDependencies": {
@@ -20,7 +21,6 @@
     "ejs": "^2.5.6",
     "hapi": "^16.4.2",
     "inert": "^4.2.0",
-    "vision": "^4.1.1",
-    "bootstrap": "3.3.7"
+    "vision": "^4.1.1"
   }
 }

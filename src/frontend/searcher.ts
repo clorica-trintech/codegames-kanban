@@ -34,21 +34,19 @@ type Searcher = {
         character = corpus[i];
 
         if (corpus[i].toLocaleLowerCase() === pattern[patternIdx]) {
-          // If this is a non-consequtive match ignore non-word boundaries
           const isConsecutiveOrWordBoundary =
             // Consequtive
             currentScore !== 0 ||
             // Word boundary
             i === 0 ||
             // Word boundary
-            corpus[i - 1].match(/\s/);
+            corpus[i - 1].match(/[^\w]|_/);
           
           if (isConsecutiveOrWordBoundary) {
             character = prefix + character + postfix;
             currentScore += 1 + currentScore;
             patternIdx += 1;
           }
-
         } else {
           currentScore = 0;
         }

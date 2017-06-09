@@ -11,14 +11,13 @@
             for (let i = 0; i < length; i++) {
                 character = corpus[i];
                 if (corpus[i].toLocaleLowerCase() === pattern[patternIdx]) {
-                    // If this is a non-consequtive match ignore non-word boundaries
                     const isConsecutiveOrWordBoundary = 
                     // Consequtive
                     currentScore !== 0 ||
                         // Word boundary
                         i === 0 ||
                         // Word boundary
-                        corpus[i - 1].match(/\s/);
+                        corpus[i - 1].match(/[^\w]|_/);
                     if (isConsecutiveOrWordBoundary) {
                         character = prefix + character + postfix;
                         currentScore += 1 + currentScore;
@@ -103,6 +102,14 @@
         'In Progress',
         'Done'
     ]);
+    const workFlowTagStatuses = new Map([
+        ['To Do',
+            ['Preparer', 'Reviewer', 'Approver', 'Proxy']],
+        ['In Progress',
+            ['In Review', 'In Approval', 'Proxy']],
+        ['Done',
+            ['Completed', 'Cancelled']]
+    ]);
     const searchableFields = new Set([
         'id',
         'assignee',
@@ -117,6 +124,7 @@
         'doneStatus',
         'canReopen'
     ]);
+    const COLLAPSE = 'collapse';
     function makeCardRows(fields, isSummary) {
         const rows = [];
         const keys = Object.keys(fields);
@@ -144,7 +152,6 @@
         }
         return rows;
     }
-    //Ok this is real stupid, but I needed something fast
     function getFieldDisplayName(key) {
         switch (key) {
             case "id": return "ID";
@@ -230,7 +237,6 @@
             }
             for (const result of results) {
                 const card = result.tuple[1];
-                // For exact match only `result.score === Number.MAX_SAFE_INTEGER`
                 if (result.score !== 0) {
                     count++;
                     if (count < 10) {
@@ -245,7 +251,10 @@
                 }
             }
         }, 500));
-        input.addEventListener('blur', () => typeAhead.innerHTML = '');
+        input.addEventListener('blur', () => {
+            typeAhead.innerHTML = '';
+            typeAhead.classList.add('hidden');
+        });
         return titleBar;
     }
     function kanban(root, data, searcher) {
@@ -283,7 +292,13 @@
         }
         function makeCard(issue) {
             const card = make('div');
-            card.classList.add('card', 'compact');
+            const classes = ['card', 'compact'];
+            const { toDoRole, inProgressStatus, doneStatus } = issue;
+            const status = [toDoRole, inProgressStatus, doneStatus].filter(i => !!i);
+            for (const item of status) {
+                classes.push(item.toLocaleLowerCase().replace(/\s+/, '-'));
+            }
+            card.classList.add(...classes);
             card.addEventListener('click', (event) => {
                 iframe.src = `http://localhost:8080/console/OC?&_oc_pid=RetrieveFormInFrame&_oc_tid=RetrieveFormInFrame&_orig_oc_tid=MyForms&_orig_oc_pid=MyForms&selected_id=&formlistversion=All&_view=Inbox&_button_clicked=&pageHit=true&_form_list_sid=_all&freq_lov_id=0&_cancel_orig_tid=MyForms&_cancel_orig_pid=MyForms&isBulkTransfer=&isBulkSubmit=&_cancelform_formlistsid=&_cancelform_reference=&action=&customPerPage=10&log_sid=14904&_oc_pid=RetrieveFormInFrame&_oc_tid=RetrieveFormInFrame&14904_acting_as_cm=art,U,-1&_firstpass=true&_ispopup=true&_nohelp=true#`;
                 iframe.onload = () => iframe.classList.add('ready');
@@ -444,9 +459,66 @@
             }
             return initials;
         }
+        function filterColumn(column, keys) {
+            const cards = column.querySelectorAll('.card');
+            if (keys.length) {
+                outer: for (const card of cards) {
+                    for (const key of keys) {
+                        if (card.classList.contains(key)) {
+                            card.classList.remove('filter-hidden');
+                            continue outer;
+                        }
+                    }
+                    card.classList.add('filter-hidden');
+                }
+            }
+            else {
+                for (const card of cards) {
+                    card.classList.remove('filter-hidden');
+                }
+            }
+        }
         function makeColumn(workFlowTag, issues) {
             const column = make('div');
             column.classList.add('column');
+            // Filters
+            const filterDock = make('div');
+            filterDock.classList.add('filter-dock');
+            column.appendChild(filterDock);
+            const filterBar = make('div');
+            filterBar.classList.add('filter-bar');
+            filterDock.appendChild(filterBar);
+            const htmlClass = workFlowTag.toLocaleLowerCase().replace(/\s+/, '-');
+            const filterSet = make('div');
+            filterSet.classList.add('filter-set', htmlClass);
+            filterBar.appendChild(filterSet);
+            const statuses = workFlowTagStatuses.get(workFlowTag);
+            for (const status of statuses) {
+                const filter = make('div');
+                filter.setAttribute('status', status.toLocaleLowerCase().replace(/\s+/, '-'));
+                filter.classList.add('filter');
+                filterSet.appendChild(filter);
+                const checkbox = make('input');
+                checkbox.type = 'checkbox';
+                filter.appendChild(checkbox);
+                function onclick(event) {
+                    event.stopPropagation();
+                    checkbox.checked = !checkbox.checked;
+                    const activeKeys = [];
+                    const filters = filterSet.querySelectorAll('.filter');
+                    for (const filter of filters) {
+                        const input = filter.children[0];
+                        if (input.checked) {
+                            activeKeys.push(filter.getAttribute('status'));
+                        }
+                    }
+                    filterColumn(column, activeKeys);
+                }
+                filter.onclick = onclick;
+                const label = make('p');
+                label.textContent = status;
+                filter.appendChild(label);
+            }
             // Column header
             const header = make('header');
             const title = make('div');
@@ -456,7 +528,6 @@
             const minMax = make('div');
             minMax.classList.add('min-max');
             header.appendChild(minMax);
-            const COLLAPSE = 'collapse';
             function checkOrDoCollapseAll() {
                 const columns = [...root.querySelectorAll('.column')];
                 let isCollapseAll = true;
@@ -498,7 +569,7 @@
                         classes.remove(COLLAPSE);
                     }
                     else {
-                        const columns = [...root.querySelectorAll('.column')];
+                        const columns = root.querySelectorAll('.column');
                         for (const aColumn of columns) {
                             if (aColumn !== column) {
                                 aColumn.classList.add(COLLAPSE);
@@ -519,9 +590,6 @@
             }
             return column;
         }
-        const filterDock = make('div');
-        filterDock.classList.add('filter-dock');
-        container.appendChild(filterDock);
         const columnContainer = make('div');
         columnContainer.classList.add('column-container');
         container.appendChild(columnContainer);
