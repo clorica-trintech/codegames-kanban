@@ -452,7 +452,7 @@ interface IssueSummary {
         {
           case "In Review": inProgressStatus.classList.add('in-review');break;
           case "In Approval": inProgressStatus.classList.add('in-approval');break;
-          case "Proxy": inProgressStatus.classList.add('in-proxy');break;
+          case "In Proxy": inProgressStatus.classList.add('in-proxy');break;
         }
         tagDiv.appendChild(inProgressStatus);
       } else if (issue.workFlowTag == 'Done') {

@@ -297,6 +297,7 @@
                 iframe.src = 'http://localhost:8002/public/modal/' + issue.id + '.png';
                 iframe.style.width = '100%';
                 iframe.style.height = '100%';
+                iframe.align = 'center';
                 iframe.onload = () => iframe.classList.add('ready');
                 modal.classList.add('active');
                 clickShield.classList.add('active');
@@ -362,7 +363,7 @@
                     case "In Approval":
                         inProgressStatus.classList.add('in-approval');
                         break;
-                    case "Proxy":
+                    case "In Proxy":
                         inProgressStatus.classList.add('in-proxy');
                         break;
                 }
